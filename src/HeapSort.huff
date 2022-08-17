@@ -54,12 +54,12 @@
 
 /* Main */
 #define macro MAIN() = takes (0) returns (0) {
-    0x00 0x04 calldatasize          // [0x00, 0x04, calldatasize]
-    calldatacopy                    // [] 
+    0x04 calldatasize sub           // [data_size] (without function selector)
+    0x04 0x00 calldatacopy          // []
     0x24 calldataload               // [n]
-    0x20 dup2 gt                    // [n > 0x20, n]
+    0x01 dup2 gt                    // [n > 0x01, n]
     cont jumpi                      // [n]
-    0x40 add 0x00                   // [0x00, 0x40 + n]
+    0x20 mul 0x40 add 0x00          // [0x00, 0x40 + 0x20 * n]
     return                          // []
 
     cont:                           // [n]
@@ -83,6 +83,6 @@
         sort jump                   // [i, n]
      
     ret:                            // [0x00, n]
-    swap1 0x40 add swap1            // [0x00, n + 0x40]
+    swap1 0x20 mul 0x40 add swap1   // [0x00, 0x20 * n + 0x40]
     return                          // []
 }
