@@ -2,87 +2,81 @@
 #define function sort(uint256[] calldata) pure returns (uint256[] memory)
 
 /* Macros */
+#define macro ARRAY_INDEX() = takes (1) returns (1) {
+    // takes: [index] returns [array_index]
+    0x20 mul 0x40 add                   // [array_index(= 0x20 * index + 0x40)]
+}
+
 #define macro SWAP() = takes (2) returns (2) {
-  // takes: [a, b] returns [a, b]
-  dup2 0x20 mul 0x40 add mload          // [array[b], a, b]
-  dup2 0x20 mul 0x40 add mload          // [array[a], array[b], a, b]
-  dup4 0x20 mul 0x40 add mstore         // [array[b], a, b]
-  dup2 0x20 mul 0x40 add mstore         // [a, b]
+    // takes: [a, b] returns [a, b]
+    dup2 ARRAY_INDEX() mload            // [array[b], a, b]
+    dup2 ARRAY_INDEX() mload            // [array[a], array[b], a, b]
+    dup4 ARRAY_INDEX() mstore           // [array[b], a, b]
+    dup2 ARRAY_INDEX() mstore           // [a, b]
 }
 
 /* Functions */
-#define fn HEAPIFY() = takes (2) returns (2) {
-    // takes: [i, n] returns: [i, n]
+#define fn HEAPIFY() = takes (2) returns (1) {
+    // takes: [i, n] returns: [n]
     start:                              // [i, n]
-    dup1                                // [largest(=i), i, n]
-    0x02 dup3 mul                       // [2i, largest, i, n]
-    0x01 dup2 add                       // [left, largest, i, n]
-    0x01 dup2 add                       // [right, left, largest, i, n]
+    dup1                                // [largest(= i), i, n]
+    0x02 dup3 mul 0x01 add              // [left(= 2 * i + 1), largest, i, n]
     
-    dup5 dup3 lt                        // [left < n, right, left, largest, i, n]
-    iszero left_not_greater jumpi       // [right, left, largest, i, n]
-    dup3 mload                          // [array[largest], right, left, largest, i, n]
-    dup3 mload gt                       // [array[left] > array[largest], right, left, largest, i, n]
-    iszero left_not_greater jumpi       // [right, left, largest, i, n]
-    dup2 swap3 pop                      // [right, left, largest(=left), i, n]
+    dup4 dup2 lt iszero                 // [left >= n, left, largest, i, n]
+    left_not_greater jumpi              // [left, largest, i, n]
+    dup2 ARRAY_INDEX() mload            // [array[largest], left, largest, i, n]
+    dup2 ARRAY_INDEX() mload gt iszero  // [array[left] <= array[largest], left, largest, i, n]
+    left_not_greater jumpi              // [left, largest, i, n]
+    swap1 pop                           // [left, i, n]
+    SWAP() swap1 pop                    // [left, n]
+    start jump                          // [left, n]
     
-    left_not_greater:                   // [right, left, largest, i, n]
+    left_not_greater:                   // [left, largest, i, n]
     
-    dup5 dup2 lt                        // [right < n, right, left, largest, i, n]
-    iszero right_not_greater jumpi      // [right, left, largest, i, n]
-    dup3 0x40 add mload                 // [array[largest], right, left, largest, i, n]
-    dup2 0x40 add mload gt              // [array[left] > array[largest], right, left, largest, i, n]
-    iszero right_not_greater jumpi      // [right, left, largest, i, n]
-    dup1 swap3 pop                      // [right, left, largest(=right), i, n]
+    0x01 add                            // [right(= left + 1), largest, i, n]          
+    dup4 dup2 lt iszero                 // [right >= n, right, largest, i, n]
+    right_not_greater jumpi             // [right, largest, i, n]
+    dup2 ARRAY_INDEX() mload            // [array[largest], right, largest, i, n]
+    dup2 ARRAY_INDEX() mload gt iszero  // [array[right] <= array[largest], right, largest, i, n]
+    right_not_greater jumpi             // [right, largest, i, n]
+    swap1 pop                           // [right, i, n]
+    SWAP() swap1 pop                    // [right, n]
+    start jump                          // [right, n]
     
-    right_not_greater:                  // [right, left, largest, i, n]
-    
-    pop pop                             // [largest, i, n]
-    dup1 dup3 eq                        // [largest == i, largest, i, n]
-    clean jumpi                         // [largest, i, n]
-    SWAP()                              // [largest, i, n]
-    pop                                 // [i, n]
-    start jumpi                         // [i, n]
-    
-    ret jump                            // [i, n]
-    
-    clean:                              // [largest, i, n]
-      pop                               // [i, n]
-    
-    ret:                                // [i, n]
+    right_not_greater:                  // [right, largest, i, n]
+    pop pop pop                         // [n]
 }
 
 /* Main */
 #define macro MAIN() = takes (0) returns (0) {
-    0x04 calldatasize sub           // [data_size] (without function selector)
-    0x04 0x00 calldatacopy          // []
-    0x24 calldataload               // [n]
-    0x01 dup2 gt                    // [n > 0x01, n]
-    cont jumpi                      // [n]
-    0x20 mul 0x40 add 0x00          // [0x00, 0x40 + 0x20 * n]
-    return                          // []
+    0x04 calldatasize sub               // [data_size (without function selector)]
+    0x04 0x00 calldatacopy              // []
+    0x24 calldataload                   // [n]
+    0x01 dup2 gt                        // [n > 0x01, n]
+    cont jumpi                          // [n]
+    0x20 mul 0x40 add 0x00              // [0x00, 0x20 * n + 0x40]
+    return                              // []
 
-    cont:                           // [n]
-    0x02 dup2 div                   // [n / 2, n]
-    0x01 dup2 sub                   // [i, n]
-    max_heap:                       // [i, n]
-        HEAPIFY()                   // [i, n]
-        0x00 dup2 eq                // [i == 0x00, i, n]
-        heap_sort jumpi             // [i, n]
-        0x01 swap1 sub              // [i(-1), n]
-        max_heap jump               // [i, n]
+    cont:                               // [n]
+    0x01 0x02 dup3 div sub swap(1)      // [n, i(=n / 2 - 1)]
+    max_heap:                           // [n, i]
+        dup2 HEAPIFY()                  // [n, i]
+        dup2 iszero                     // [i == 0x00, n, i]
+        heap_sort jumpi                 // [n, i]
+        swap1 0x01 swap1 sub            // [i(-=1), n]
+        swap1 max_heap jump             // [n, i]
 
-    heap_sort:                      // [0x00, n]
-    0x01 dup3 sub add               // [i(=n-1), n]
-    sort:                           // [i, n]
-        0x00 SWAP() pop             // [i, n]
-        0x00 HEAPIFY() pop          // [i, n]
-        0x00 dup2 eq                // [i == 0x00, i, n]
-        ret jumpi                   // [i, n]
-        0x01 swap1 sub              // [i(-1), n]
-        sort jump                   // [i, n]
+    heap_sort:                          // [n, 0x00]
+    0x01 swap1 sub swap1                // [0x00, i(=n-1)]
+    sort:                               // [0x00, i]
+        SWAP()                          // [0x00, i]
+        HEAPIFY()                       // [i]
+        dup1 eq                         // [i == 0x00, i]
+        ret jumpi                       // [i]
+        0x01 swap1 sub                  // [i(-=1)]
+        0x00 sort jump                  // [0x00, i]
      
-    ret:                            // [0x00, n]
-    swap1 0x20 mul 0x40 add swap1   // [0x00, 0x20 * n + 0x40]
-    return                          // []
+    ret:                                // [0x00]
+    0x04 calldatasize sub swap1         // [0x00, data_size]
+    return                              // []
 }
