@@ -1,86 +1,170 @@
-/* Interface */
+/// @title HeapSort
+/// @author altugbakan.eth
+/// @notice Heap Sort implemented in Huff.
+
+/* Function Interfaces */
+/// @notice Interface for the sort function.
+/// @dev The function selector is discarded. It is supplied to fit the interface.
 #define function sort(uint256[] calldata) pure returns (uint256[] memory)
 
 /* Macros */
-#define macro ARRAY_SIZE() = takes (0) returns (1) {
-    // returns: [array_size]
-    0x04 calldatasize sub               // [array_size(= calldatasize - 0x04)]
+/// @notice Returns total array size.
+/// @dev This macro returns the total size of the array, including the 64 bytes
+///      of the pointer and the size values used for the Solidity dynamic array
+///      memory encoding rules.
+#define macro TOTAL_SIZE() = takes (0) returns (1) {
+    // returns: [total_array_size]
+    0x04 calldatasize sub               // [total_array_size(= calldatasize - 0x04)]
 }
 
-#define macro ARRAY_INDEX() = takes (1) returns (1) {
-    // takes: [index] returns: [array_index]
-    0x20 mul 0x40 add                   // [array_index(= 0x20 * index + 0x40)]
+/// @notice Returns the byte index on memory for an element.
+/// @dev This macro returns the byte index on memory for a given element encoded
+///      using the Solidity dynamic array memory encoding rules.
+#define macro MEMORY_INDEX() = takes (1) returns (1) {
+    // takes: [array_index] returns: [memory_index]
+    0x20 mul 0x40 add                   // [memory_index(= 0x20 * index + 0x40)]
 }
 
+/// @notice Swaps the elements on given array indices.
+/// @dev This macro swaps the values on the memory locations corresponding to
+///      the given array indices. It returns the given indices back.
 #define macro SWAP() = takes (2) returns (2) {
     // takes: [a, b] returns [a, b]
-    dup2 ARRAY_INDEX() mload            // [array[b], a, b]
-    dup2 ARRAY_INDEX() mload            // [array[a], array[b], a, b]
-    dup4 ARRAY_INDEX() mstore           // [array[b], a, b]
-    dup2 ARRAY_INDEX() mstore           // [a, b]
+
+    // Load the array values
+    dup2 MEMORY_INDEX() mload           // [array[b], a, b]
+    dup2 MEMORY_INDEX() mload           // [array[a], array[b], a, b]
+
+    // Store array[a] on b
+    dup4 MEMORY_INDEX() mstore          // [array[b], a, b]
+
+    // Store array[b] on a
+    dup2 MEMORY_INDEX() mstore          // [a, b]
 }
 
+/// @notice Heapifies the binary tree.
+/// @dev This macro finds the largest item among root, left child, and right child.
+///      If the root is not the largest item, it continues heapifying until the
+///      root becomes the largest item, or reaches a leaf node.
 #define macro HEAPIFY() = takes (2) returns (1) {
     // takes: [i, n] returns: [n]
+
+    // Initialize largest as i and left as 2 * i + 1
     start:                              // [i, n]
     dup1                                // [largest(= i), i, n]
     0x02 dup3 mul 0x01 add              // [left(= 2 * i + 1), largest, i, n]
-    
+
+    // Check if left is a valid memory location, otherwise skip
     dup4 dup2 lt iszero                 // [left >= n, left, largest, i, n]
     left_not_greater jumpi              // [left, largest, i, n]
+
+    // Check if array[left] is larger than array[largest], otherwise skip
     dup2 ARRAY_INDEX() mload            // [array[largest], left, largest, i, n]
     dup2 ARRAY_INDEX() mload gt iszero  // [array[left] <= array[largest], left, largest, i, n]
     left_not_greater jumpi              // [left, largest, i, n]
-    swap1 pop                           // [left, i, n]
-    SWAP() swap1 pop                    // [left, n]
-    start jump                          // [left, n]
-    
+
+    // Set largest as left
+    swap1 pop dup1                      // [left, largest(= left), i, n]
+
+    // Skip destination
     left_not_greater:                   // [left, largest, i, n]
-    
-    0x01 add                            // [right(= left + 1), largest, i, n]          
+
+    // Initialize right as 2 * i + 2, which is equal to left + 1
+    0x01 add                            // [right(= left + 1), largest, i, n]
+
+    // Check if right is a valid memory location, otherwise skip
     dup4 dup2 lt iszero                 // [right >= n, right, largest, i, n]
     right_not_greater jumpi             // [right, largest, i, n]
-    dup2 ARRAY_INDEX() mload            // [array[largest], right, largest, i, n]
-    dup2 ARRAY_INDEX() mload gt iszero  // [array[right] <= array[largest], right, largest, i, n]
+
+    // Check if array[right] is larger than array[largest], otherwise skip
+    dup2 MEMORY_INDEX() mload           // [array[largest], right, largest, i, n]
+    dup2 MEMORY_INDEX() mload gt iszero // [array[right] <= array[largest], right, largest, i, n]
     right_not_greater jumpi             // [right, largest, i, n]
-    swap1 pop                           // [right, i, n]
-    SWAP() swap1 pop                    // [right, n]
-    start jump                          // [right, n]
-    
+
+    // Set largest as right
+    swap1 pop dup1                      // [right, largest(= right), i, n]
+
+    // Skip destination
     right_not_greater:                  // [right, largest, i, n]
-    pop pop pop                         // [n]
+
+    // Check if largest has changed, otherwise exit
+    pop dup2 dup2 eq                    // [i == largest, largest, i, n]
+    exit jumpi                          // [largest, i, n]
+
+    // Swap array[largest] and array[i]
+    SWAP()                              // [largest, i, n]
+
+    // Set largest as i and jump back to start
+    swap1 pop                           // [largest, n]
+    start jump                          // [i(= largest), n]
+
+    // Exit destination
+    exit:                               // [largest, i, n]
+    pop pop                             // [n]
 }
 
-/* Main */
+/* Entry Point */
+/// @notice Function entry point.
+/// @dev This macro expects only one uint256[] dynamic array on calldata encoded
+///      using Solidity calldata rules. It returns one uint256[] dynamic array on
+///      memory encoded using Solidity memory rules.
 #define macro MAIN() = takes (0) returns (0) {
-    ARRAY_SIZE()                        // [array_size]
-    0x04 returndatasize calldatacopy    // []
-    0x24 calldataload                   // [n]
+    // Copy calldata to memory without the function selector
+    TOTAL_SIZE() 0x04 returndatasize    // [0x00, 0x04, total_array_size]
+    calldatacopy                        // []
+
+    // Get the array length from the corresponding calldata location
+    0x24 calldataload                   // [n(= array_length)]
+    
+    // If array length is greater than 1, continue
     0x01 dup2 gt                        // [n > 0x01, n]
     cont jumpi                          // [n]
+
+    // If array length is 0 or 1, return the given array
     0x20 mul 0x40 add returndatasize    // [0x00, 0x20 * n + 0x40]
     return                              // []
 
+    // Continue destination
     cont:                               // [n]
-    0x01 0x02 dup3 div sub swap(1)      // [n, i(=n / 2 - 1)]
-    max_heap:                           // [n, i]
-        dup2 HEAPIFY()                  // [n, i]
-        dup2 iszero                     // [i == 0x00, n, i]
-        heap_sort jumpi                 // [n, i]
-        swap1 0x01 swap1 sub            // [i(-=1), n]
-        swap1 max_heap jump             // [n, i]
 
+    // Initialize i as n / 2 - 1, which is the first index of a non-leaf node
+    0x01 0x02 dup3 div sub swap(1)      // [n, i(=n / 2 - 1)]
+
+    // Heapify the tree on each non-leaf node
+    max_heap:                           // [n, i]
+    dup2 HEAPIFY()                      // [n, i]
+
+    // Start heap sorting if i is zero
+    dup2 iszero                         // [i == 0x00, n, i]
+    heap_sort jumpi                     // [n, i]
+
+    // Decrement i and continue heapifying
+    swap1 0x01 swap1 sub                // [i(-=1), n]
+    swap1 max_heap jump                 // [n, i]
+
+    // Heap sort destination
     heap_sort:                          // [n, 0x00]
+
+    // Initialize i as n - 1
     0x01 swap1 sub swap1                // [0x00, i(=n-1)]
+ 
+    // Swap the largest element with the last element
     sort:                               // [0x00, i]
-        SWAP()                          // [0x00, i]
-        HEAPIFY()                       // [i]
-        dup1 eq                         // [i == 0x00, i]
-        ret jumpi                       // [i]
-        0x01 swap1 sub returndatasize   // [0x00, i(-=1)]
-        sort jump                       // [0x00, i]
-     
+    SWAP()                              // [0x00, i]
+
+    // Heapify the root element to get the largest element to the root again
+    HEAPIFY()                           // [i]
+
+    // Return if i is zero
+    dup1 eq                             // [i == 0x00, i]
+    ret jumpi                           // [i]
+
+    // Decrement i and continue sorting
+    0x01 swap1 sub returndatasize       // [0x00, i(-=1)]
+    sort jump                           // [0x00, i]
+
+    // Return the sorted array
     ret:                                // [0x00]
-    ARRAY_SIZE() swap1                  // [0x00, array_size]
+    TOTAL_SIZE() swap1                  // [0x00, total_array_size]
     return                              // []
 }
