@@ -47,4 +47,15 @@ contract HeapSortTest is Test {
         uint256[] memory output = heapSort.sort(input);
         assertEq(output, actual);
     }
+    
+    function testFuzz(uint256[] calldata input) public {
+        uint256[] memory output = heapSort.sort(input);
+        uint256 i = 0;
+        for (; i < input.length - 1;) {
+            assertLe(output[i], output[i + 1]);
+            unchecked {
+                ++i;
+            }
+        }
+    }
 }
