@@ -15,8 +15,7 @@
     dup2 ARRAY_INDEX() mstore           // [a, b]
 }
 
-/* Functions */
-#define fn HEAPIFY() = takes (2) returns (1) {
+#define macro HEAPIFY() = takes (2) returns (1) {
     // takes: [i, n] returns: [n]
     start:                              // [i, n]
     dup1                                // [largest(= i), i, n]
