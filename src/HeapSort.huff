@@ -2,8 +2,13 @@
 #define function sort(uint256[] calldata) pure returns (uint256[] memory)
 
 /* Macros */
+#define macro ARRAY_SIZE() = takes (0) returns (1) {
+    // returns: [array_size]
+    0x04 calldatasize sub               // [array_size(= calldatasize - 0x04)]
+}
+
 #define macro ARRAY_INDEX() = takes (1) returns (1) {
-    // takes: [index] returns [array_index]
+    // takes: [index] returns: [array_index]
     0x20 mul 0x40 add                   // [array_index(= 0x20 * index + 0x40)]
 }
 
@@ -48,12 +53,12 @@
 
 /* Main */
 #define macro MAIN() = takes (0) returns (0) {
-    0x04 calldatasize sub               // [data_size (without function selector)]
-    0x04 0x00 calldatacopy              // []
+    ARRAY_SIZE()                        // [array_size]
+    0x04 returndatasize calldatacopy    // []
     0x24 calldataload                   // [n]
     0x01 dup2 gt                        // [n > 0x01, n]
     cont jumpi                          // [n]
-    0x20 mul 0x40 add 0x00              // [0x00, 0x20 * n + 0x40]
+    0x20 mul 0x40 add returndatasize    // [0x00, 0x20 * n + 0x40]
     return                              // []
 
     cont:                               // [n]
@@ -72,10 +77,10 @@
         HEAPIFY()                       // [i]
         dup1 eq                         // [i == 0x00, i]
         ret jumpi                       // [i]
-        0x01 swap1 sub                  // [i(-=1)]
-        0x00 sort jump                  // [0x00, i]
+        0x01 swap1 sub returndatasize   // [0x00, i(-=1)]
+        sort jump                       // [0x00, i]
      
     ret:                                // [0x00]
-    0x04 calldatasize sub swap1         // [0x00, data_size]
+    ARRAY_SIZE() swap1                  // [0x00, array_size]
     return                              // []
 }
