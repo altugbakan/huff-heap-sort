@@ -4,10 +4,10 @@
 /* Macros */
 #define macro SWAP() = takes (2) returns (2) {
   // takes: [a, b] returns [a, b]
-  dup2 0x40 add mload                   // [array[b], a, b]
-  dup2 0x40 add mload                   // [array[a], array[b], a, b]
-  dup4 0x40 add mstore                  // [array[b], a, b]
-  dup2 0x40 add mstore                  // [a, b]
+  dup2 0x20 mul 0x40 add mload          // [array[b], a, b]
+  dup2 0x20 mul 0x40 add mload          // [array[a], array[b], a, b]
+  dup4 0x20 mul 0x40 add mstore         // [array[b], a, b]
+  dup2 0x20 mul 0x40 add mstore         // [a, b]
 }
 
 /* Functions */
