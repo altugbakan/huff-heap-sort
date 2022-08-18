@@ -18,7 +18,7 @@
 }
 
 /// @notice Returns the byte index on memory for an element.
-/// @dev This macro returns the byte index on memory for a given element encoded
+/// @dev This macro returns the byte index on memory for a given element, encoded
 ///      using the Solidity dynamic array memory encoding rules.
 #define macro MEMORY_INDEX() = takes (1) returns (1) {
     // takes: [array_index] returns: [memory_index]
@@ -59,8 +59,8 @@
     left_not_greater jumpi              // [left, largest, i, n]
 
     // Check if array[left] is larger than array[largest], otherwise skip
-    dup2 ARRAY_INDEX() mload            // [array[largest], left, largest, i, n]
-    dup2 ARRAY_INDEX() mload gt iszero  // [array[left] <= array[largest], left, largest, i, n]
+    dup2 MEMORY_INDEX() mload           // [array[largest], left, largest, i, n]
+    dup2 MEMORY_INDEX() mload gt iszero // [array[left] <= array[largest], left, largest, i, n]
     left_not_greater jumpi              // [left, largest, i, n]
 
     // Set largest as left
@@ -105,9 +105,9 @@
 
 /* Entry Point */
 /// @notice Function entry point.
-/// @dev This macro expects only one uint256[] dynamic array on calldata encoded
+/// @dev This contract expects only one uint256[] dynamic array on calldata, encoded
 ///      using Solidity calldata rules. It returns one uint256[] dynamic array on
-///      memory encoded using Solidity memory rules.
+///      memory, encoded using Solidity memory rules.
 #define macro MAIN() = takes (0) returns (0) {
     // Copy calldata to memory without the function selector
     TOTAL_SIZE() 0x04 returndatasize    // [0x00, 0x04, total_array_size]
@@ -128,7 +128,7 @@
     cont:                               // [n]
 
     // Initialize i as n / 2 - 1, which is the first index of a non-leaf node
-    0x01 0x02 dup3 div sub swap(1)      // [n, i(=n / 2 - 1)]
+    0x01 0x02 dup3 div sub swap1        // [n, i(=n / 2 - 1)]
 
     // Heapify the tree on each non-leaf node
     max_heap:                           // [n, i]
@@ -156,7 +156,7 @@
     HEAPIFY()                           // [i]
 
     // Return if i is zero
-    dup1 eq                             // [i == 0x00, i]
+    dup1 iszero                         // [i == 0x00, i]
     ret jumpi                           // [i]
 
     // Decrement i and continue sorting
@@ -165,6 +165,6 @@
 
     // Return the sorted array
     ret:                                // [0x00]
-    TOTAL_SIZE() swap1                  // [0x00, total_array_size]
+    msize swap1                         // [0x00, total_array_size]
     return                              // []
 }

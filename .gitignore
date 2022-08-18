@@ -6,3 +6,6 @@ out/
 !/broadcast
 /broadcast/*
 /broadcast/*/31337/
+
+# Environment variables
+.env
