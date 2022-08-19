@@ -121,7 +121,7 @@
     cont jumpi                          // [n]
 
     // If array length is 0 or 1, return the given array
-    pop TOTAL_SIZE() returndatasize     // [0x00, 0x20 * n + 0x40]
+    pop TOTAL_SIZE() returndatasize     // [0x00, total_array_size]
     return                              // []
 
     // Continue destination
