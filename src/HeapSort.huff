@@ -121,14 +121,14 @@
     cont jumpi                          // [n]
 
     // If array length is 0 or 1, return the given array
-    0x20 mul 0x40 add returndatasize    // [0x00, 0x20 * n + 0x40]
+    pop TOTAL_SIZE() returndatasize     // [0x00, 0x20 * n + 0x40]
     return                              // []
 
     // Continue destination
     cont:                               // [n]
 
     // Initialize i as n / 2 - 1, which is the first index of a non-leaf node
-    0x01 0x02 dup3 div sub swap1        // [n, i(=n / 2 - 1)]
+    0x01 0x02 dup3 div sub swap1        // [n, i(= n / 2 - 1)]
 
     // Heapify the tree on each non-leaf node
     max_heap:                           // [n, i]
@@ -139,14 +139,14 @@
     heap_sort jumpi                     // [n, i]
 
     // Decrement i and continue heapifying
-    swap1 0x01 swap1 sub                // [i(-=1), n]
+    swap1 0x01 swap1 sub                // [i(-= 1), n]
     swap1 max_heap jump                 // [n, i]
 
     // Heap sort destination
     heap_sort:                          // [n, 0x00]
 
     // Initialize i as n - 1
-    0x01 swap1 sub swap1                // [0x00, i(=n-1)]
+    0x01 swap1 sub swap1                // [0x00, i(= n - 1)]
  
     // Swap the largest element with the last element
     sort:                               // [0x00, i]
@@ -160,7 +160,7 @@
     ret jumpi                           // [i]
 
     // Decrement i and continue sorting
-    0x01 swap1 sub returndatasize       // [0x00, i(-=1)]
+    0x01 swap1 sub returndatasize       // [0x00, i(-= 1)]
     sort jump                           // [0x00, i]
 
     // Return the sorted array
