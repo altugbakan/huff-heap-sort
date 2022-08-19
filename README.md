@@ -33,6 +33,13 @@ forge test
 
 This contract expects only one uint256[] dynamic array on calldata, encoded using Solidity calldata rules. It returns one uint256[] dynamic array on memory, encoded using Solidity memory rules.
 
+You can test the script against the contest using
+
+```shell
+source .env
+forge script script/ValidateProgram.s.sol --rpc-url $RPC_URL -vv
+```
+
 ## Acknowledgements
 - [Heap Sort Algorithm](https://www.programiz.com/dsa/heap-sort)
 - [evm.codes](https://www.evm.codes/)

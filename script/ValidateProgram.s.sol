@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Script.sol";
+import "forge-std/console.sol";
 import "foundry-huff/HuffDeployer.sol";
 
 interface ISortProgram {
@@ -12,7 +13,15 @@ interface ISortProgram {
 }
 
 interface ISortProgramContest {
-    function qualify(ISortProgram program) external payable;
+    function validateProgram(address program)
+        external
+        returns (
+            bool success,
+            uint256 reason,
+            uint256 gasUsed
+        );
+
+    function END_DATE() external view returns (uint256 timestamp);
 }
 
 contract ValidateProgram is Script {
@@ -20,8 +29,13 @@ contract ValidateProgram is Script {
         0xB64A8F57b46Df3F303d72204acCF4F8F680D6dCf;
 
     function run() public {
-        ISortProgram heapSort = ISortProgram(HuffDeployer.deploy("HeapSort"));
         ISortProgramContest contest = ISortProgramContest(CONTEST_ADDRESS);
-        contest.qualify{value: 10 ether}(heapSort);
+        vm.warp(contest.END_DATE() - 1);
+        ISortProgram heapSort = ISortProgram(HuffDeployer.deploy("HeapSort"));
+        (bool success, , uint256 gasUsed) = contest.validateProgram(
+            address(heapSort)
+        );
+        require(success, "Program is not valid.");
+        console.log("Gas Used: %d", gasUsed);
     }
 }
